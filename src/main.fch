@@ -1,0 +1,170 @@
+use graphics;
+
+window = graphics.GraphicsWindow(1280, 720, "Beyond Horizons", true)
+window.enable(graphics.moderngl.DEPTH_TEST)
+running = true
+
+triangle_vertices =(- 0.5,- 0.5,- 0.5, 0.5,- 0.5,- 0.5, 0.5, 0.5,- 0.5,- 0.5, 0.5,- 0.5,- 0.5,- 0.5, 0.5, 0.5,- 0.5, 0.5, 0.5, 0.5, 0.5,- 0.5, 0.5, 0.5)
+indices =(4, 5, 6, 4, 6, 7, 1, 0, 3, 1, 3, 2, 5, 1, 2, 5, 2, 6, 0, 4, 7, 0, 7, 3, 7, 6, 2, 7, 2, 3, 0, 1, 5, 0, 5, 4)
+packed_indices = graphics.pack_ints(indices)
+index_buffer = window.buffer(packed_indices)
+vertex_data = graphics.pack_floats(triangle_vertices)
+buffer = window.buffer(vertex_data)
+
+vertex_shader = "#version 330\nuniform mat4 model;\nuniform mat4 view;\nuniform mat4 projection;\nin vec3 in_position;\nvoid main() {\n    gl_Position = projection * view * model *vec4(in_position, 1.0);\n}"
+fragment_shader = "#version 330\nout vec4 frag_color;\nvoid main() {\n    frag_color = vec4(1.0, 0.2, 0.2, 1.0);\n}"
+
+triangle_program = window.program(vertex_shader, fragment_shader)
+projection_matrix = graphics.matrix_perspective(1.222, 1.7777778, 0.1, 100.0)
+
+projection_data = graphics.matrix_bytes(projection_matrix)
+program_projection = triangle_program["projection"]
+program_projection.write(projection_data)
+triangle_vao = window.simple_vertex_array(triangle_program, buffer, "in_position", index_buffer = index_buffer)
+
+mouse_captured = true
+window.capture_mouse(mouse_captured, true)
+
+position_x = 0.0
+position_y = 0.0
+position_z = 3.0
+yaw = 0.0
+pitch = 0.0
+speed = 4.3
+key_w = false
+key_a = false
+key_s = false
+key_d = false
+key_space = false
+key_shift = false
+key_ctrl = false
+
+
+while running;
+    events = window.events()
+    if window.should_close;
+        running = false
+    for event in events;
+        if event["name"] = "KeyDown";
+            if event["key_name"] = "escape" also mouse_captured;
+                window.capture_mouse(false, false)
+                mouse_captured = false
+
+            if event["key_name"] = "w";
+                key_w = true
+            
+            if event["key_name"] = "a";
+                key_a = true
+            
+            if event["key_name"] = "s";
+                key_s = true
+
+            if event["key_name"] = "d";
+                key_d = true
+            
+            if event["key_name"] = "space";
+                key_space = true
+            
+            if event["key_name"] = "control";
+                key_ctrl = true
+
+            if event["key_name"] = "left shift";
+                key_shift = true
+
+        if event["name"] = "KeyUp";
+            if event["key_name"] = "w";
+                key_w = false
+            
+            if event["key_name"] = "a";
+                key_a = false
+            
+            if event["key_name"] = "s";
+                key_s = false
+
+            if event["key_name"] = "d";
+                key_d = false
+            
+            if event["key_name"] = "space";
+                key_space = false
+            
+            if event["key_name"] = "control";
+                key_ctrl = false
+
+            if event["key_name"] = "left shift";
+                key_shift = false
+
+        if event["name"] = "MouseButtonDown";
+            if event["button"] = 1 also ! mouse_captured;
+                window.capture_mouse(true, true)
+                mouse_captured = true
+        if event["name"] = "MouseMotion" also mouse_captured;
+            rel = event["rel"]
+            rel_x = rel[0]
+            rel_y = rel[1]
+            yaw = yaw + rel_x * 0.002
+            pitch = pitch - rel_y * 0.002
+            if pitch > 1.55;
+                pitch = 1.55
+            if pitch < - 1.55;
+                pitch =- 1.55
+    
+    dt = window.tick(120)
+    
+    move_x = sin(yaw)
+    move_z = 0 - cos(yaw)
+    right_x = cos(yaw)
+    right_z = sin(yaw)
+
+    wish_x = 0.0
+    wish_z = 0.0
+
+    if key_ctrl;
+        current_speed = 5.6
+    else;
+        current_speed = 4.3
+    if key_w;
+        wish_x = wish_x + move_x
+        wish_z = wish_z + move_z
+    if key_s;
+        wish_x = wish_x - move_x
+        wish_z = wish_z - move_z
+    if key_d;
+        wish_x = wish_x + right_x
+        wish_z = wish_z + right_z
+    if key_a;
+        wish_x = wish_x - right_x
+        wish_z = wish_z - right_z
+    if key_space;
+        position_y = position_y + current_speed * dt
+    if key_shift;
+        position_y = position_y - current_speed * dt
+    
+    if wish_x != 0.0 or wish_z != 0.0;
+        movement = graphics.vector_normalize([wish_x, 0.0, wish_z])
+        movement_x = movement.x
+        movement_z = movement.z
+        position_x = position_x + movement_x * current_speed * dt
+        position_z = position_z + movement_z * current_speed * dt
+    
+    forward_x = sin(yaw) * cos(pitch)
+    forward_y = sin(pitch)
+    forward_z = cos(yaw) * cos(pitch)
+    forward_z = 0 - forward_z
+    target_x = position_x + forward_x
+    target_y = position_y + forward_y
+    target_z = position_z + forward_z
+    view_matrix = graphics.matrix_look_at((position_x, position_y, position_z),(target_x, target_y, target_z),(0, 1, 0))
+    view_data = graphics.matrix_bytes(view_matrix)
+    program_view = triangle_program["view"]
+    program_view.write(view_data)
+
+    model_matrix = graphics.matrix_translation(0, 0, 0)
+    model_data = graphics.matrix_bytes(model_matrix)
+    program_model = triangle_program["model"]
+    program_model.write(model_data)
+
+    window.clear(0.529, 0.808, 0.922, 1)
+    triangle_vao.render(mode = graphics.moderngl.TRIANGLES)
+    window.present()
+
+window.close()

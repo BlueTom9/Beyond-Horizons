@@ -1,0 +1,19 @@
+{
+    "project" ={
+        "name" = "Beyond Horizons",
+        "version" = "0.0.1",
+        "description" = "Beyond Horizons, where your dreams come true.",
+        "author" ={
+            "name" = "Flickz"
+        },
+        "engine" = "BHZ 3D ENGINE",
+        "engineVersion" = "0.0.1",
+        "type" = "game",
+        "main" = "src/game/main.fch"
+    },
+
+    "build" ={
+        "date" = "2026-10-16",
+        "targetPlatforms" =["Windows"]
+    }
+}
